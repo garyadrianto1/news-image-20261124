@@ -28,6 +28,16 @@ list fills the box with no dead space below row 7, and the stray 1px
 stroke after "6." is erased (see EVIDENCE/fix-also-on-round3.md).
 No story, headline or other section changed.
 
+v5 (25 Nov 2026): round-4 QA revision of the ALSO ON strip — the
+round-3 row move had left the light-grey anti-alias halos of the old
+row positions behind as legible ghost text in the gaps between rows.
+The old text bands were repainted FULLY with donor paper from the v3
+dead space (y810-842, verified ink-free), all pixels, not just dark
+ink; mid-grey (128-199) counts in every inter-row gap are now 0 and
+4x NEAREST crops of every gap show no ghost text (see
+EVIDENCE/fix-also-on-round4.md). No story, headline or other section
+changed.
+
 Exit codes: 0 ok, 2 the stored image is bad, 3 the copy does not match.
 """
 
@@ -37,8 +47,8 @@ import struct
 import sys
 import zlib
 
-# Stored image (v4): 581737 bytes, sha256
-# 311a785b74786eb385ac78f25af9d5a3ea9e213704f8dc74baa8131c19b830c3.
+# Stored image (v5): 568468 bytes, sha256
+# c2841b122d2300ea308628cad5a98f4a38b311aabacb1f979af8a894fc4c0bda.
 # Keep this in sync with source/entry.png on every fix round.
 
 MAX_BYTES = 1048576
