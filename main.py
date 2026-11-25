@@ -13,6 +13,14 @@ v2 (25 Nov 2026): the "ALSO ON TUESDAY 24 NOVEMBER" strip was realigned
 own text line (see EVIDENCE/fix-also-on-alignment.md). No story, headline
 or other section changed.
 
+v3 (25 Nov 2026): round-2 owner revision of the ALSO ON strip — each of
+the 7 rows now has its OWN icon (the shared rows-4/5 composite is gone;
+row 4 is exam paper + ban + a correct South Korean Taegeukgi, row 5 is a
+plane + a correct Bangladesh flag), the "-" bullets became numbers 1-7,
+and the footer now reads "ALL REPORTS AS OF 22:00 GMT" (see
+EVIDENCE/fix-also-on-round2.md). The palette gained a true green for the
+Bangladesh flag; no story, headline or other section changed.
+
 Exit codes: 0 ok, 2 the stored image is bad, 3 the copy does not match.
 """
 
@@ -39,6 +47,22 @@ def png_info(blob):
     return width, height, blob[24], blob[25]
 
 
+def find_palette(blob):
+    """Return the PLTE chunk payload, or None when there is none."""
+    offset = 8
+    while offset + 8 <= len(blob):
+        size, kind = struct.unpack(">I4s", blob[offset:offset + 8])
+        stop = offset + 12 + size
+        if stop > len(blob):
+            return None
+        if kind == b"PLTE":
+            return blob[offset + 8:offset + 8 + size]
+        if kind == b"IDAT":
+            return None
+        offset = stop
+    return None
+
+
 def check_png(blob):
     """Return None when blob is a whole 1024x1024 PNG within limits."""
     if len(blob) > MAX_BYTES:
@@ -55,6 +79,14 @@ def check_png(blob):
     if bit_depth not in allowed_depths.get(color_type, ()):
         return ("entry.png has color type %d with bit depth %d"
                 % (color_type, bit_depth))
+    if color_type == 3:
+        # A palette image needs a PLTE chunk with one RGB triple per index.
+        palette = find_palette(blob)
+        if palette is None:
+            return "entry.png has no PLTE chunk"
+        if len(palette) != 3 * (1 << bit_depth):
+            return ("entry.png PLTE chunk is %d bytes, expected %d"
+                    % (len(palette), 3 * (1 << bit_depth)))
     if blob[-12:] != IEND:
         return "entry.png has no IEND trailer"
     return walk_chunks(blob)
@@ -103,9 +135,11 @@ def run(argv):
     if len(argv) > 1 and argv[1] == "--check":
         # Self-test mode: validate the stored image without writing output.
         width, height, bit_depth, color_type = png_info(blob)
+        palette = find_palette(blob)
         print("entry.png ok (%d bytes, %dx%d, color type %d, bit depth %d,"
-              " sha256 %s)"
+              " palette %d entries, sha256 %s)"
               % (len(blob), width, height, color_type, bit_depth,
+                 len(palette) // 3 if palette is not None else 0,
                  hashlib.sha256(blob).hexdigest()))
         return 0
     out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
