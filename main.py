@@ -21,6 +21,13 @@ and the footer now reads "ALL REPORTS AS OF 22:00 GMT" (see
 EVIDENCE/fix-also-on-round2.md). The palette gained a true green for the
 Bangladesh flag; no story, headline or other section changed.
 
+v4 (25 Nov 2026): round-3 owner + QA revision of the ALSO ON strip —
+the dashed right border is now one clean solid line (the stray twin
+line at x991 is gone), rows 2-7 are spread to an even pitch so the
+list fills the box with no dead space below row 7, and the stray 1px
+stroke after "6." is erased (see EVIDENCE/fix-also-on-round3.md).
+No story, headline or other section changed.
+
 Exit codes: 0 ok, 2 the stored image is bad, 3 the copy does not match.
 """
 
@@ -29,6 +36,10 @@ import os
 import struct
 import sys
 import zlib
+
+# Stored image (v4): 581737 bytes, sha256
+# 311a785b74786eb385ac78f25af9d5a3ea9e213704f8dc74baa8131c19b830c3.
+# Keep this in sync with source/entry.png on every fix round.
 
 MAX_BYTES = 1048576
 SIDE = 1024
