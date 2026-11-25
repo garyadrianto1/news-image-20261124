@@ -8,6 +8,11 @@ the stored PNG is whole and within the competition limits, copies it
 byte-for-byte to ``/output/entry.png`` (or ``$MAKEFUN_OUTPUT_DIR``), and
 then reads the copy back and confirms it is identical.
 
+v2 (25 Nov 2026): the "ALSO ON TUESDAY 24 NOVEMBER" strip was realigned
+— text lines evened to a uniform pitch and every icon re-centred on its
+own text line (see EVIDENCE/fix-also-on-alignment.md). No story, headline
+or other section changed.
+
 Exit codes: 0 ok, 2 the stored image is bad, 3 the copy does not match.
 """
 
@@ -28,6 +33,12 @@ def fail(message, code):
     return code
 
 
+def png_info(blob):
+    """Return (width, height, bit depth, color type) from the IHDR chunk."""
+    width, height = struct.unpack(">II", blob[16:24])
+    return width, height, blob[24], blob[25]
+
+
 def check_png(blob):
     """Return None when blob is a whole 1024x1024 PNG within limits."""
     if len(blob) > MAX_BYTES:
@@ -36,9 +47,14 @@ def check_png(blob):
         return "entry.png does not start with the PNG signature"
     if len(blob) < 33 or blob[12:16] != b"IHDR":
         return "entry.png has no IHDR chunk"
-    width, height = struct.unpack(">II", blob[16:24])
+    width, height, bit_depth, color_type = png_info(blob)
     if width != SIDE or height != SIDE:
         return "entry.png is %dx%d, expected 1024x1024" % (width, height)
+    allowed_depths = {0: (1, 2, 4, 8, 16), 2: (8, 16), 3: (1, 2, 4, 8),
+                      4: (8, 16), 6: (8, 16)}
+    if bit_depth not in allowed_depths.get(color_type, ()):
+        return ("entry.png has color type %d with bit depth %d"
+                % (color_type, bit_depth))
     if blob[-12:] != IEND:
         return "entry.png has no IEND trailer"
     return walk_chunks(blob)
@@ -86,8 +102,11 @@ def run(argv):
         return fail(problem, 2)
     if len(argv) > 1 and argv[1] == "--check":
         # Self-test mode: validate the stored image without writing output.
-        print("entry.png ok (%d bytes, sha256 %s)"
-              % (len(blob), hashlib.sha256(blob).hexdigest()))
+        width, height, bit_depth, color_type = png_info(blob)
+        print("entry.png ok (%d bytes, %dx%d, color type %d, bit depth %d,"
+              " sha256 %s)"
+              % (len(blob), width, height, color_type, bit_depth,
+                 hashlib.sha256(blob).hexdigest()))
         return 0
     out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
     target = os.path.join(out_dir, "entry.png")
